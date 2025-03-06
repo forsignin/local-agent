@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="50" viewBox="0 0 200 50" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <!-- 机器人图标 -->
+  <g transform="translate(10, 5)" fill="#1890ff">
+    <!-- 头部 -->
+    <rect x="10" y="5" width="20" height="20" rx="4"/>
+    <!-- 天线 -->
+    <line x1="20" y1="0" x2="20" y2="5" stroke="#1890ff" stroke-width="2"/>
+    <!-- 眼睛 -->
+    <circle cx="16" cy="12" r="2" fill="white"/>
+    <circle cx="24" cy="12" r="2" fill="white"/>
+    <!-- 身体 -->
+    <rect x="12" y="25" width="16" height="15" rx="2"/>
+    <!-- 手臂 -->
+    <rect x="4" y="27" width="8" height="2" rx="1"/>
+    <rect x="28" y="27" width="8" height="2" rx="1"/>
+  </g>
+  
+  <!-- 文字 -->
+  <text x="60" y="32" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#262626">
+    LocalAgent
+  </text>
+</svg> 

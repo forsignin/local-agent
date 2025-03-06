@@ -1,0 +1,17 @@
+setup.py
+localagent.egg-info/PKG-INFO
+localagent.egg-info/SOURCES.txt
+localagent.egg-info/dependency_links.txt
+localagent.egg-info/requires.txt
+localagent.egg-info/top_level.txt
+src/__init__.py
+src/agents/__init__.py
+src/agents/base.py
+src/agents/controller/__init__.py
+src/agents/controller/controller_agent.py
+src/api/__init__.py
+src/api/rest/__init__.py
+src/api/rest/main.py
+src/common/__init__.py
+src/common/config/__init__.py
+src/common/config/settings.py
