@@ -137,7 +137,7 @@ export const ExecutorProvider: React.FC<{ children: React.ReactNode }> = ({
     const loadExecutions = async () => {
       dispatch({ type: 'SET_LOADING' });
       try {
-        const executions = await executorService.listExecutions();
+        const executions = await executorService.listExecutions() || [];
         const executionsMap = executions.reduce(
           (acc, execution) => ({
             ...acc,
@@ -152,11 +152,26 @@ export const ExecutorProvider: React.FC<{ children: React.ReactNode }> = ({
           .map(e => e.id);
         dispatch({ type: 'SET_ACTIVE_EXECUTIONS', payload: activeExecutions });
 
-        const queue = await executorService.getExecutionQueue();
-        dispatch({
-          type: 'SET_EXECUTION_QUEUE',
-          payload: queue.queue.map(item => item.id),
-        });
+        try {
+          const queue = await executorService.getExecutionQueue();
+          if (queue && queue.queue) {
+            dispatch({
+              type: 'SET_EXECUTION_QUEUE',
+              payload: queue.queue.map(item => item.id),
+            });
+          } else {
+            dispatch({
+              type: 'SET_EXECUTION_QUEUE',
+              payload: [],
+            });
+          }
+        } catch (queueError) {
+          console.error('Failed to load execution queue:', queueError);
+          dispatch({
+            type: 'SET_EXECUTION_QUEUE',
+            payload: [],
+          });
+        }
       } catch (error) {
         console.error('Failed to load executions:', error);
         dispatch({ type: 'SET_ERROR', payload: '加载执行列表失败' });

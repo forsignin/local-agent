@@ -69,7 +69,7 @@ export interface TaskStats {
 }
 
 export interface TaskState {
-  tasks: Task[];
+  tasks: Record<string, Task>;
   selectedTask: Task | null;
   filters: TaskFilter;
   stats: TaskStats;
@@ -78,9 +78,11 @@ export interface TaskState {
 }
 
 export type TaskAction =
-  | { type: 'SET_TASKS'; payload: Task[] }
+  | { type: 'SET_TASKS'; payload: Record<string, Task> }
   | { type: 'SELECT_TASK'; payload: Task }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'DELETE_TASK'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_ERROR'; payload: string }; 
+  | { type: 'SET_ERROR'; payload: string }
+  | { type: 'ADD_TASK'; payload: Task }
+  | { type: 'CLEAR_ERROR' }; 

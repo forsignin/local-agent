@@ -4,7 +4,10 @@ import jwt
 from passlib.context import CryptContext
 import logging
 import secrets
+from sqlalchemy.orm import Session
 from src.common.config.settings import settings
+from src.models.user import User
+from src.database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +19,7 @@ class SecurityManager:
         self.secret_key = settings.SECRET_KEY
         self.algorithm = "HS256"
         self.access_token_expire_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        self.db = next(get_db())
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """验证密码"""
@@ -49,8 +53,19 @@ class SecurityManager:
         except jwt.ExpiredSignatureError:
             logger.warning("Token has expired")
             return None
-        except jwt.JWTError as e:
+        except Exception as e:
             logger.error(f"Token validation failed: {str(e)}")
+            return None
+
+    def get_user_by_username_or_email(self, username_or_email: str) -> Optional[User]:
+        """通过用户名或邮箱获取用户"""
+        try:
+            return self.db.query(User).filter(
+                (User.username == username_or_email) | 
+                (User.email == username_or_email)
+            ).first()
+        except Exception as e:
+            logger.error(f"Failed to get user: {str(e)}")
             return None
 
 class RBACManager:
@@ -162,14 +177,11 @@ class SecurityContext:
     def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
         """用户认证"""
         try:
-            # 这里应该从数据库获取用户信息
-            # 示例实现
-            if username == "admin" and self.security_manager.verify_password(password, self.security_manager.get_password_hash("admin")):
-                return {
-                    "id": "admin",
-                    "username": username,
-                    "role": "admin"
-                }
+            user = self.security_manager.get_user_by_username_or_email(username)
+            if user and user.verify_password(password):
+                user.last_login = datetime.utcnow()
+                self.security_manager.db.commit()
+                return user.to_dict()
             return None
         except Exception as e:
             logger.error(f"User authentication failed: {str(e)}")

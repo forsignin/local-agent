@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import { RegisterData } from '../types/auth';
+import { API_BASE_URL } from '../services/api';
 
 const { Title } = Typography;
 
@@ -25,10 +26,20 @@ const RegisterCard = styled(Card)`
 const LogoContainer = styled.div`
   text-align: center;
   margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const Logo = styled.img`
-  height: 48px;
+  height: 36px;
+  margin-bottom: 8px;
+`;
+
+const BrandName = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  color: #1890ff;
   margin-bottom: 16px;
 `;
 
@@ -38,7 +49,7 @@ const Register: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
-  const handleSubmit = async (values: RegisterData) => {
+  const handleSubmit = async (values: any) => {
     if (values.password !== values.confirmPassword) {
       form.setFields([
         {
@@ -51,11 +62,16 @@ const Register: React.FC = () => {
 
     setLoading(true);
     try {
+      const { email, password, username } = values;
       await register({
-        ...values,
-        role: 'user', // 默认注册为普通用户
+        email,
+        password,
+        username,
+        role: 'user' // 默认角色
       });
       navigate('/dashboard');
+    } catch (error) {
+      console.error('注册失败:', error);
     } finally {
       setLoading(false);
     }
@@ -65,7 +81,8 @@ const Register: React.FC = () => {
     <RegisterContainer>
       <RegisterCard>
         <LogoContainer>
-          <Logo src="/logo.png" alt="LocalAgent" />
+          <Logo src={`${API_BASE_URL}/static/images/logo.png`} alt="LocalAgent" />
+          <BrandName>LocalAgent</BrandName>
           <Title level={3}>注册新账号</Title>
         </LogoContainer>
 

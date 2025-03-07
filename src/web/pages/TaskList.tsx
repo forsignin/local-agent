@@ -1,12 +1,14 @@
 import React, { useEffect } from 'react';
 import { Card, Button, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useTask } from '../context/TaskContext';
 import TaskListComponent from '../components/task/TaskList';
 import type { Task } from '../types/task';
 import { fetchTasks } from '../services/task';
 
 const TaskList: React.FC = () => {
+  const navigate = useNavigate();
   const { state, dispatch, updateTask, deleteTask } = useTask();
 
   useEffect(() => {
@@ -14,7 +16,11 @@ const TaskList: React.FC = () => {
       dispatch({ type: 'SET_LOADING', payload: true });
       try {
         const tasks = await fetchTasks();
-        dispatch({ type: 'SET_TASKS', payload: tasks });
+        const tasksMap = tasks.reduce((acc, task) => {
+          acc[task.id] = task;
+          return acc;
+        }, {} as Record<string, Task>);
+        dispatch({ type: 'SET_TASKS', payload: tasksMap });
       } catch (error) {
         console.error('Failed to fetch tasks:', error);
         message.error('加载任务列表失败');
@@ -64,17 +70,25 @@ const TaskList: React.FC = () => {
     }
   };
 
+  const handleCreateTask = () => {
+    navigate('/tasks/create');
+  };
+
   return (
     <Card
       title="任务列表"
       extra={
-        <Button type="primary" icon={<PlusOutlined />}>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          onClick={handleCreateTask}
+        >
           新建任务
         </Button>
       }
     >
       <TaskListComponent
-        tasks={state.tasks}
+        tasks={Object.values(state.tasks)}
         loading={state.loading}
         onView={handleView}
         onStart={handleStart}

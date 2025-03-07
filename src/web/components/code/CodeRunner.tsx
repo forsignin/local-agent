@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense } from 'react';
 import {
   Card,
   Select,
@@ -14,12 +14,12 @@ import {
   Spin,
   message,
 } from 'antd';
+import Editor from '@monaco-editor/react';
 import type { CodeOutput } from '../../types/codeRunner';
 import { useCodeRunner } from '../../context/CodeRunnerContext';
 import type { RuntimeConfig, CodeInput } from '../../types/codeRunner';
 import styled from 'styled-components';
-
-const MonacoEditor = lazy(() => import('@monaco-editor/react'));
+import { defaultEditorOptions, editorThemes, initializeMonaco } from '../../config/monaco';
 
 const { Option } = Select;
 const { TabPane } = Tabs;
@@ -169,16 +169,16 @@ export const CodeRunner: React.FC = () => {
             <TabPane tab="代码编辑器" key="code">
               <EditorContainer>
                 <Suspense fallback={<Spin tip="加载编辑器..." />}>
-                  <MonacoEditor
+                  <Editor
                     value={code}
-                    onChange={(value: string | undefined) => setCode(value || '')}
+                    onChange={(value) => setCode(value || '')}
                     language="python"
                     height="400px"
-                    theme="vs-dark"
-                    options={{
-                      minimap: { enabled: false },
-                      scrollBeyondLastLine: false,
-                      fontSize: 14,
+                    theme={editorThemes.dark}
+                    options={defaultEditorOptions}
+                    loading={<Spin tip="加载编辑器..." />}
+                    onMount={(editor, monaco) => {
+                      initializeMonaco(monaco);
                     }}
                   />
                 </Suspense>

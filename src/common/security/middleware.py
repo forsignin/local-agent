@@ -149,5 +149,30 @@ class SecurityDependency:
 
     async def __call__(self, request: Request) -> Dict[str, Any]:
         """依赖处理函数"""
-        await self.security_middleware(request, self.permission)
-        return request.state.user
+        try:
+            # 认证
+            user = await self.security_middleware.authenticate(request)
+            if not user:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Could not validate credentials",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            
+            # 授权 - 如果是管理员，跳过权限检查
+            if user.get("role") == "admin" or not self.permission or await self.security_middleware.authorize(user, self.permission):
+                request.state.user = user
+                return user
+            
+            raise HTTPException(
+                status_code=403,
+                detail="Not enough permissions"
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Security dependency error: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Internal server error"
+            )

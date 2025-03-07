@@ -6,6 +6,9 @@ import type { Task } from '../types/task';
 import type { Tool } from '../types/tool';
 import type { User, LoginCredentials, RegisterData } from '../types/user';
 
+// 导出 API 基础 URL
+export const API_BASE_URL = 'http://localhost:8000';
+
 // 添加一个全局变量来控制是否允许工具相关的 API 调用
 let allowToolApiCalls = false;
 
@@ -14,7 +17,8 @@ export const setAllowToolApiCalls = (allow: boolean) => {
 };
 
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
+  // 添加 /api 前缀以匹配后端路由
+  baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'

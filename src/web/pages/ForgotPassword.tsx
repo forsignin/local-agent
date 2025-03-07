@@ -51,7 +51,7 @@ const ForgotPassword: React.FC = () => {
     <Container>
       <StyledCard>
         <LogoContainer>
-          <Logo src="/logo.png" alt="LocalAgent" />
+          <Logo src="/static/images/logo.png" alt="LocalAgent" />
           <Title level={3}>重置密码</Title>
         </LogoContainer>
 

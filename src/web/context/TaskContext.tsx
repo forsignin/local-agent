@@ -5,14 +5,15 @@ import type { Task, TaskState, TaskStats, TaskFilter, TaskType, TaskStatus, Task
 
 type TaskAction =
   | { type: 'SET_LOADING'; payload: boolean }
-  | { type: 'SET_TASKS'; payload: Task[] }
+  | { type: 'SET_TASKS'; payload: Record<string, Task> }
   | { type: 'SET_SELECTED_TASK'; payload: Task | null }
   | { type: 'UPDATE_TASK'; payload: Task }
   | { type: 'REMOVE_TASK'; payload: string }
   | { type: 'SET_FILTER'; payload: TaskFilter }
   | { type: 'SET_STATS'; payload: TaskStats }
   | { type: 'SET_ERROR'; payload: string | null }
-  | { type: 'CLEAR_ERROR' };
+  | { type: 'CLEAR_ERROR' }
+  | { type: 'ADD_TASK'; payload: Task };
 
 const initialStats: TaskStats = {
   total: 0,
@@ -47,7 +48,7 @@ const initialStats: TaskStats = {
 };
 
 const initialState: TaskState = {
-  tasks: [],
+  tasks: {},
   selectedTask: null,
   filters: {},
   stats: initialStats,
@@ -88,35 +89,50 @@ const TaskContext = createContext<{
 const taskReducer = (state: TaskState, action: TaskAction): TaskState => {
   switch (action.type) {
     case 'SET_LOADING':
-      return { ...state, loading: action.payload, error: null };
+      return { ...state, loading: action.payload };
     case 'SET_TASKS':
-      return { ...state, tasks: action.payload, loading: false };
+      return {
+        ...state,
+        tasks: action.payload,
+        loading: false,
+      };
     case 'SET_SELECTED_TASK':
       return { ...state, selectedTask: action.payload };
     case 'UPDATE_TASK':
       return {
         ...state,
-        tasks: state.tasks.map(task =>
-          task.id === action.payload.id ? action.payload : task
-        ),
+        tasks: {
+          ...state.tasks,
+          [action.payload.id]: action.payload,
+        },
         selectedTask:
           state.selectedTask?.id === action.payload.id
             ? action.payload
             : state.selectedTask,
       };
     case 'REMOVE_TASK':
+      const { [action.payload]: removed, ...remainingTasks } = state.tasks;
       return {
         ...state,
-        tasks: state.tasks.filter(task => task.id !== action.payload),
+        tasks: remainingTasks,
         selectedTask:
           state.selectedTask?.id === action.payload ? null : state.selectedTask,
+      };
+    case 'ADD_TASK':
+      return {
+        ...state,
+        tasks: {
+          ...state.tasks,
+          [action.payload.id]: action.payload,
+        },
+        selectedTask: action.payload,
       };
     case 'SET_FILTER':
       return { ...state, filters: action.payload };
     case 'SET_STATS':
       return { ...state, stats: action.payload };
     case 'SET_ERROR':
-      return { ...state, error: action.payload, loading: false };
+      return { ...state, error: action.payload };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
     default:
@@ -135,7 +151,11 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
           taskService.listTasks(state.filters),
           taskService.getTaskStats(state.filters),
         ]);
-        dispatch({ type: 'SET_TASKS', payload: tasks });
+        const tasksMap = tasks.reduce((acc, task) => {
+          acc[task.id] = task;
+          return acc;
+        }, {} as Record<string, Task>);
+        dispatch({ type: 'SET_TASKS', payload: tasksMap });
         dispatch({ type: 'SET_STATS', payload: stats });
       } catch (error) {
         console.error('Failed to load tasks:', error);
@@ -150,7 +170,7 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleCreateTask = async (...args: Parameters<typeof taskService.createTask>) => {
     try {
       const task = await taskService.createTask(...args);
-      dispatch({ type: 'SET_TASKS', payload: [...state.tasks, task] });
+      dispatch({ type: 'ADD_TASK', payload: task });
       message.success('任务创建成功');
       return task;
     } catch (error) {

@@ -12,11 +12,11 @@ export interface RegisterData extends Omit<User, 'id' | 'created_at' | 'updated_
   password: string;
 }
 
-export const login = async (credentials: LoginCredentials) => {
-  const response = await api.post('/auth/login', credentials);
-  const { token, user } = response.data;
-  localStorage.setItem('token', token);
-  return { token, user };
+export const login = async (username: string, password: string) => {
+  const response = await api.post('/auth/login', { username, password });
+  const { access_token, user } = response.data;
+  localStorage.setItem('token', access_token);
+  return { token: access_token, user };
 };
 
 export const logout = async () => {
@@ -26,9 +26,9 @@ export const logout = async () => {
 
 export const register = async (data: RegisterData) => {
   const response = await api.post('/auth/register', data);
-  const { token, user } = response.data;
-  localStorage.setItem('token', token);
-  return { token, user };
+  const { user, access_token } = response.data;
+  localStorage.setItem('token', access_token);
+  return { user, token: access_token };
 };
 
 export const getCurrentUser = async () => {
@@ -47,9 +47,9 @@ export const changePassword = async (oldPassword: string, newPassword: string) =
 
 export const refreshToken = async () => {
   const response = await api.post('/auth/refresh');
-  const { token } = response.data;
-  localStorage.setItem('token', token);
-  return token;
+  const { access_token } = response.data;
+  localStorage.setItem('token', access_token);
+  return access_token;
 };
 
 export const forgotPassword = async (email: string) => {

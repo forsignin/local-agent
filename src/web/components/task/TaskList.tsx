@@ -29,7 +29,7 @@ interface TaskListProps {
 }
 
 const TaskList: React.FC<TaskListProps> = ({
-  tasks,
+  tasks = [],
   loading,
   onView,
   onStart,

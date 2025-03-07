@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 import Dashboard from '../../pages/Dashboard';
 import TaskList from '../../pages/TaskList';
+import TaskCreate from '../../pages/TaskCreate';
 import Settings from '../../pages/Settings';
 import Profile from '../../pages/Profile';
 import { CodeRunner } from '../code/CodeRunner';
@@ -97,6 +98,7 @@ const MainLayout: React.FC = () => {
           <Routes>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tasks" element={<TaskList />} />
+            <Route path="/tasks/create" element={<TaskCreate />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/code" element={<CodeRunner />} />

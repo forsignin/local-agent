@@ -7,7 +7,7 @@ import styled from 'styled-components';
 import { useAuth } from '../context/AuthContext';
 import { LoginCredentials } from '../types/auth';
 import OAuthButtons from '../components/auth/OAuthButtons';
-import logo from '../assets/logo.svg';
+import { API_BASE_URL } from '../services/api';
 
 const { Title } = Typography;
 
@@ -29,9 +29,24 @@ const LoginCard = styled(Card)`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const Logo = styled.img`
-  width: 200px;
+const LogoContainer = styled.div`
+  text-align: center;
   margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const Logo = styled.img`
+  height: 36px;
+  margin-bottom: 8px;
+`;
+
+const BrandName = styled.div`
+  font-size: 24px;
+  font-weight: 600;
+  color: #1890ff;
+  margin-bottom: 16px;
 `;
 
 const StyledForm = styled(Form)<FormProps>`
@@ -71,7 +86,7 @@ const Login: React.FC = () => {
       navigate(from);
     } catch (error) {
       console.error('登录失败:', error);
-      message.error('登录失败，请检查用户名和密码');
+      message.error('登录失败，请检查用户名/邮箱和密码');
     } finally {
       setLoading(false);
     }
@@ -93,7 +108,10 @@ const Login: React.FC = () => {
   return (
     <LoginContainer>
       <LoginCard>
-        <Logo src={logo} alt="LocalAgent" />
+        <LogoContainer>
+          <Logo src={`${API_BASE_URL}/static/images/logo.png`} alt="LocalAgent" />
+          <BrandName>LocalAgent</BrandName>
+        </LogoContainer>
         <StyledForm
           form={form}
           name="login"
@@ -102,11 +120,14 @@ const Login: React.FC = () => {
         >
           <Form.Item
             name="username"
-            rules={[{ required: true, message: '请输入用户名' }]}
+            rules={[
+              { required: true, message: '请输入用户名或邮箱' },
+              { min: 3, message: '用户名至少3个字符' }
+            ]}
           >
             <Input
               prefix={<UserOutlined />}
-              placeholder="用户名"
+              placeholder="用户名或邮箱"
               size="large"
             />
           </Form.Item>

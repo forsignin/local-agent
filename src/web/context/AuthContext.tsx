@@ -178,14 +178,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (username: string, password: string) => {
     try {
       dispatch({ type: 'LOGIN_START' });
-      const { user, token } = await authService.login({ username, password });
+      const { token, user } = await authService.login(username, password);
       localStorage.setItem('token', token);
       dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-      message.success('登录成功');
     } catch (error) {
       console.error('Login failed:', error);
       dispatch({ type: 'LOGIN_FAILURE', payload: '登录失败' });
-      message.error('登录失败');
+      throw error;
     }
   };
 

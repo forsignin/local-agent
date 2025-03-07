@@ -1,81 +1,134 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from datetime import datetime
+import uuid
 
-from src.core.task.task_manager import TaskManager
 from src.common.security.middleware import SecurityDependency
+from src.database import get_db
+from src.models.task import Task, TaskType, TaskStatus, TaskPriority
+from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
-task_manager = TaskManager()
 
-class TaskCreate(BaseModel):
-    """任务创建请求模型"""
-    type: str
-    content: str
+class TaskBase(BaseModel):
+    """任务基础模型"""
+    name: str
+    type: TaskType
+    status: TaskStatus
+    priority: TaskPriority
+    description: Optional[str] = None
+    config: Optional[Dict[str, Any]] = None
     metadata: Optional[Dict[str, Any]] = None
 
-class TaskResponse(BaseModel):
+class TaskCreate(TaskBase):
+    """创建任务的请求模型"""
+    pass
+
+class TaskResponse(TaskBase):
     """任务响应模型"""
     id: str
-    type: str
-    status: str
-    metadata: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
+    agent_id: Optional[str] = None
+    result: Optional[Dict[str, Any]] = None
 
-class TaskLog(BaseModel):
-    """任务日志模型"""
-    id: int
-    agent_id: str
-    action: str
-    result: Dict[str, Any]
-    created_at: datetime
+    class Config:
+        orm_mode = True
 
-@router.post("/", response_model=TaskResponse)
+class TaskStats(BaseModel):
+    """任务统计模型"""
+    total: int
+    completed: int
+    failed: int
+    pending: int
+
+@router.get("", response_model=List[TaskResponse])
+async def list_tasks(
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
+):
+    """获取任务列表"""
+    tasks = db.query(Task).all()
+    return [TaskResponse.from_orm(task) for task in tasks]
+
+@router.get("/stats", response_model=TaskStats)
+async def get_task_stats(
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
+):
+    """获取任务统计信息"""
+    total = db.query(func.count(Task.id)).scalar()
+    completed = db.query(func.count(Task.id)).filter(Task.status == TaskStatus.COMPLETED.value).scalar()
+    failed = db.query(func.count(Task.id)).filter(Task.status == TaskStatus.FAILED.value).scalar()
+    pending = db.query(func.count(Task.id)).filter(Task.status == TaskStatus.PENDING.value).scalar()
+    
+    return {
+        "total": total,
+        "completed": completed,
+        "failed": failed,
+        "pending": pending
+    }
+
+@router.post("", response_model=TaskResponse)
 async def create_task(
     task: TaskCreate,
-    user: Dict[str, Any] = Depends(SecurityDependency("task:create"))
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
 ):
-    """创建任务"""
-    try:
-        task_data = {
-            "type": task.type,
-            "content": task.content,
-            "metadata": task.metadata or {},
-            "created_by": user["id"]
-        }
-        result = await task_manager.create_task(task_data)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """创建新任务"""
+    db_task = Task(
+        id=str(uuid.uuid4()),
+        **task.dict()
+    )
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return TaskResponse.from_orm(db_task)
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
     task_id: str,
-    user: Dict[str, Any] = Depends(SecurityDependency("task:read"))
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
 ):
-    """获取任务信息"""
-    task = await task_manager.get_task(task_id)
+    """获取特定任务"""
+    task = db.query(Task).filter(Task.id == task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    return TaskResponse.from_orm(task)
 
-@router.get("/{task_id}/logs", response_model=List[TaskLog])
-async def get_task_logs(
+@router.put("/{task_id}", response_model=TaskResponse)
+async def update_task(
     task_id: str,
-    user: Dict[str, Any] = Depends(SecurityDependency("task:read"))
+    task_update: TaskBase,
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
 ):
-    """获取任务日志"""
-    logs = await task_manager.get_task_logs(task_id)
-    return logs
+    """更新任务"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    for key, value in task_update.dict(exclude_unset=True).items():
+        setattr(task, key, value)
+    
+    db.commit()
+    db.refresh(task)
+    return TaskResponse.from_orm(task)
 
-@router.get("/", response_model=List[TaskResponse])
-async def list_tasks(
-    status: Optional[str] = None,
-    task_type: Optional[str] = None,
-    user: Dict[str, Any] = Depends(SecurityDependency("task:read"))
+@router.delete("/{task_id}")
+async def delete_task(
+    task_id: str,
+    db: Session = Depends(get_db),
+    user: Dict = Depends(SecurityDependency())
 ):
-    """列出任务"""
-    tasks = await task_manager.list_tasks(status, task_type)
-    return tasks
+    """删除任务"""
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    db.delete(task)
+    db.commit()
+    return {"message": "Task deleted successfully"}

@@ -1,15 +1,21 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Dict, Any, Optional, List
 import uvicorn
 import asyncio
 import logging
+import os
 
 from src.common.config.settings import settings
 from src.agents.controller.controller_agent import ControllerAgent
 from src.agents.base import AgentRegistry
-from src.api.rest.routers import tool, agent, system  # 导入路由模块
+from src.api.rest.routers import (
+    tool, agent, system, auth, task, dashboard,
+    code_runner, data_analyzer, executor, network
+)  # 导入路由模块
+from src.database import init_db
 
 # 配置日志
 logging.basicConfig(level=logging.INFO)
@@ -24,11 +30,17 @@ app = FastAPI(
 # CORS配置
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:3000"],  # 明确指定前端域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 挂载静态文件目录
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 初始化数据库
+init_db()
 
 # 创建API路由
 api_router = FastAPI(title="API")
@@ -37,6 +49,13 @@ api_router = FastAPI(title="API")
 api_router.include_router(tool.router)
 api_router.include_router(agent.router)
 api_router.include_router(system.router)
+api_router.include_router(auth.router)
+api_router.include_router(task.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(code_runner.router)
+api_router.include_router(data_analyzer.router)
+api_router.include_router(executor.router)
+api_router.include_router(network.router)
 
 # 将API路由挂载到主应用
 app.mount("/api", api_router)
